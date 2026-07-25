@@ -1,11 +1,15 @@
 export const COLORS = {
-  background: '#151617',
-  secondaryBg: '#1E2022',
-  surface: '#25282B',
-  jade: '#2D6F73',
-  darkJade: '#1F5053',
-  lightJade: '#3A8E93',
-  gold: '#B89B5E',
+  background: '#121A33',    // Midnight Blue
+  secondaryBg: '#16203D',   // Deep Midnight
+  surface: '#1D2A4F',       // Qingxiao Surface
+  primaryBlue: '#2F5FDC',   // Primary Blue
+  deepBlue: '#2148B8',      // Deep Blue
+  royalBlue: '#456FE8',     // Royal Blue
+  midnightBlue: '#121A33',  // Midnight Blue
+  jade: '#2F5FDC',          // Primary Blue alias
+  darkJade: '#2148B8',      // Deep Blue alias
+  lightJade: '#456FE8',     // Royal Blue alias
+  gold: '#B89B5E',          // Accent Gold
   lightGold: '#D4B97A',
   ivory: '#EEE9DF',
   white: '#F8F8F8',
