@@ -15,7 +15,7 @@ export default function OnboardingScreen({ navigation }) {
     if (index < SLIDES.length - 1) {
       setIndex(index + 1);
     } else {
-      navigation.replace('Home');
+      navigation.navigate('Login');
     }
   };
 
