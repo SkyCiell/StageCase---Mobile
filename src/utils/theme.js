@@ -1,42 +1,62 @@
-// StageCase Mobile Theme — aligned with web design system
+// StageCase Mobile Theme — aligned with Web design system (Dark Jade & Gold)
 export const COLORS = {
   // Backgrounds
-  background: '#0E1219',      // Deep dark (matches web --admin-bg)
-  surface: '#1A2232',         // Card/surface (matches web --admin-surface)
-  surfaceDark: '#131923',     // Sidebar/secondary surface
-  card: '#202A3D',            // Elevated card
+  background: '#0D1117',      // Primary dark backdrop
+  bgSecondary: '#161B22',     // Secondary dark backdrop
+  card: '#1C2128',            // Elevated card
+  surface: '#22272E',         // Surface panels
 
-  // Accents
-  primary: '#2A629C',         // Primary blue (matches web)
-  primaryHover: '#1E4F82',    // Primary blue hover
-  primaryLight: '#8DA7CC',    // Muted accent
+  // Primary Brand: Dark Jade & Antique Gold
+  primary: '#2D6F73',         // Brand Jade
+  primaryHover: '#357E82',    // Jade Hover
+  primarySubtle: 'rgba(45, 111, 115, 0.15)',
 
-  // Semantic aliases (kept for backwards compat)
-  jade: '#2A629C',
-  darkJade: '#1E4F82',
-  lightJade: '#8DA7CC',
+  accent: '#B89B5E',          // Brand Gold Accent
+  gold: '#B89B5E',
+  goldHover: '#C6A96C',
+  goldSubtle: 'rgba(184, 155, 94, 0.15)',
 
-  // Bronze/gold editorial accents
-  bronze: '#C49A5A',
-  amber: '#D4B97A',
-  gold: '#C49A5A',
-  lightGold: '#D4B97A',
+  // Legacy/Semantic aliases
+  jade: '#2D6F73',
+  darkJade: '#23585B',
+  lightJade: '#479599',
+  bronze: '#B89B5E',
+  amber: '#D29922',
 
-  // Text
-  ivory: '#F5F3F5',           // Primary text
-  white: '#F8F8F8',
-  textSecondary: '#D3CCD0',   // Secondary text
-  textMuted: '#8DA7CC',       // Muted/placeholder
+  // Typography
+  ivory: '#F3F4F6',           // Text Primary
+  textPrimary: '#F3F4F6',     
+  textSecondary: '#B6BDC8',   // Secondary Text
+  textMuted: '#7D8590',       // Muted Text
+  white: '#FFFFFF',
 
-  // Borders
-  border: 'rgba(245,243,245,0.06)',   // Subtle border
-  borderLight: 'rgba(245,243,245,0.15)',
+  // Borders & Dividers
+  border: '#30363D',          // Primary Border
+  borderSubtle: 'rgba(48, 54, 61, 0.6)',
+  borderLight: 'rgba(243, 244, 246, 0.12)',
 
   // Status
-  success: '#4CAF7A',
-  warning: '#E7B567',
-  error: '#D65A5A',
+  success: '#3FB950',
+  warning: '#D29922',
+  error: '#F85149',
+  danger: '#F85149',
 };
+
+// Band Specific Visual Identity Mapping
+export const BAND_COLORS = {
+  'Crayon Case':  { primary: '#2D6F73', accent: '#D6B46B' },
+  'Reality Club': { primary: '#5D4E89', accent: '#D8C5A2' },
+  'The Milo':     { primary: '#6E8B6B', accent: '#C9A46A' },
+  'Wave to Earth':{ primary: '#4F6D8C', accent: '#BFCFD7' },
+};
+
+export function getBandColor(artistName) {
+  if (!artistName) return BAND_COLORS['Crayon Case'];
+  const foundKey = Object.keys(BAND_COLORS).find(k => 
+    artistName.toLowerCase().includes(k.toLowerCase())
+  );
+  return foundKey ? BAND_COLORS[foundKey] : BAND_COLORS['Crayon Case'];
+}
 
 export const FONTS = {
   regular: 'System',
@@ -44,3 +64,4 @@ export const FONTS = {
   bold: 'System',
   mono: 'Courier New',
 };
+

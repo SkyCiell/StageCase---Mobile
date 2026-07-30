@@ -24,8 +24,8 @@ export default function MainTabs() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: COLORS.jade,
-        tabBarInactiveTintColor: COLORS.textSecondary,
+        tabBarActiveTintColor: COLORS.gold,
+        tabBarInactiveTintColor: COLORS.textMuted,
         tabBarLabelStyle: styles.tabLabel,
       }}
     >
@@ -49,7 +49,7 @@ export default function MainTabs() {
         name="MyTickets"
         component={MyTicketsScreen}
         options={{
-          tabBarLabel: 'Tickets',
+          tabBarLabel: 'Passes',
           tabBarIcon: ({ focused }) => <TabIcon icon="🎟️" focused={focused} />,
         }}
       />
@@ -57,7 +57,7 @@ export default function MainTabs() {
         name="Profile"
         component={ProfileScreen}
         options={{
-          tabBarLabel: 'Profile',
+          tabBarLabel: 'Account',
           tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} />,
         }}
       />
@@ -67,32 +67,33 @@ export default function MainTabs() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.card,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    height: 60,
+    height: 64,
     paddingBottom: 8,
     paddingTop: 8,
   },
   tabLabel: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
   iconContainer: {
-    width: 40,
-    height: 32,
+    width: 38,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: 10,
   },
   iconContainerActive: {
-    backgroundColor: `${COLORS.jade}15`,
+    backgroundColor: COLORS.goldSubtle,
   },
   icon: {
-    fontSize: 20,
+    fontSize: 18,
   },
   iconActive: {
-    transform: [{ scale: 1.1 }],
+    transform: [{ scale: 1.15 }],
   },
 });
+

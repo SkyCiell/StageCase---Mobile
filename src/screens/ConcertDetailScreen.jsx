@@ -1,16 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, SafeAreaView, Image
+  ActivityIndicator, SafeAreaView, Image, StatusBar, Alert, Platform,
 } from 'react-native';
 import { concertService } from '../services/concertService';
-import { COLORS } from '../utils/theme';
-import { format } from 'date-fns';
+import { bookingService } from '../services/bookingService';
+import { COLORS, getBandColor } from '../utils/theme';
+import { getConcertPoster } from '../utils/covers';
+
+function formatCurrency(amount) {
+  if (!amount) return 'IDR 0';
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function formatDateFull(dateStr) {
+  if (!dateStr) return 'Date TBA';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
 
 export default function ConcertDetailScreen({ route, navigation }) {
-  const { concertId, slug } = route.params;
+  const { concertId, slug, id } = route.params || {};
+  const targetSlug = slug;
+  const targetId = id || concertId;
+
   const [concert, setConcert] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   useEffect(() => {
     fetchConcertDetail();
@@ -18,11 +44,18 @@ export default function ConcertDetailScreen({ route, navigation }) {
 
   const fetchConcertDetail = async () => {
     try {
-      const response = slug 
-        ? await concertService.getConcertBySlug(slug)
-        : await concertService.getConcerts({ id: concertId });
-      
-      setConcert(response.data.data);
+      let res;
+      if (targetSlug) {
+        res = await concertService.getConcertBySlug(targetSlug);
+      } else if (targetId) {
+        res = await concertService.getConcerts({ id: targetId });
+      }
+      const data = res?.data?.data || res?.data;
+      setConcert(data);
+      if (data?.ticketCategories?.length || data?.ticket_categories?.length) {
+        const categories = data.ticketCategories || data.ticket_categories;
+        setSelectedCategory(categories[0]);
+      }
     } catch (error) {
       console.error('Error fetching concert detail:', error);
     } finally {
@@ -30,11 +63,50 @@ export default function ConcertDetailScreen({ route, navigation }) {
     }
   };
 
+  const handleCreateBooking = async () => {
+    if (!selectedCategory?.id && !selectedCategory?.ticket_category_id) {
+      const msg = 'Silakan pilih kategori tiket terlebih dahulu.';
+      if (Platform.OS === 'web') window.alert(msg);
+      else Alert.alert('Kategori Tiket', msg);
+      return;
+    }
+
+    const categoryId = selectedCategory.id || selectedCategory.ticket_category_id;
+    setSubmitting(true);
+    try {
+      await bookingService.createBooking({
+        concert_id: concert.id,
+        items: [
+          {
+            ticket_category_id: categoryId,
+            quantity: 1,
+          },
+        ],
+      });
+
+      const successMsg = `Pemesanan tiket ${selectedCategory.name || 'Konsep'} Berhasil! E-Ticket QR Code telah dibuat.`;
+      if (Platform.OS === 'web') {
+        window.alert(successMsg);
+        navigation.navigate('Main', { screen: 'MyTickets' });
+      } else {
+        Alert.alert('Sukses 🎉', successMsg, [
+          { text: 'Lihat Tiket Saya', onPress: () => navigation.navigate('Main', { screen: 'MyTickets' }) }
+        ]);
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message || 'Gagal membuat pesanan tiket.';
+      if (Platform.OS === 'web') window.alert(`Gagal Beli Tiket: ${errorMsg}`);
+      else Alert.alert('Gagal Beli Tiket', errorMsg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={COLORS.jade} />
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       </SafeAreaView>
     );
@@ -43,12 +115,9 @@ export default function ConcertDetailScreen({ route, navigation }) {
   if (!concert) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>Concert not found</Text>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
+        <View style={styles.center}>
+          <Text style={styles.errorText}>Concert details unavailable</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -56,148 +125,128 @@ export default function ConcertDetailScreen({ route, navigation }) {
     );
   }
 
-  const formattedDate = concert.date 
-    ? format(new Date(concert.date), 'EEEE, MMMM dd, yyyy')
-    : 'Date TBA';
-  
-  const formattedTime = concert.date 
-    ? format(new Date(concert.date), 'HH:mm')
-    : '';
+  const posterUri = getConcertPoster(concert);
+  const bandColor = getBandColor(concert.artist_name);
+  const categories = concert.ticketCategories || concert.ticket_categories || [
+    { name: 'VIP FRONT', price: 750000, description: 'Front stage area + Merch' },
+    { name: 'REGULAR TIER 1', price: 350000, description: 'General admission standing' },
+  ];
 
-  const minPrice = concert.ticket_categories?.reduce((min, cat) => 
-    Math.min(min, cat.price || Infinity), Infinity
-  ) || concert.ticket_price_min || 0;
+  const minPrice = categories.length
+    ? Math.min(...categories.map(c => Number(c.price)))
+    : 350000;
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        {/* Header with Back Button */}
-        <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {concert.title}
-          </Text>
-          <View style={{ width: 40 }} />
+      <StatusBar barStyle="light-content" />
+
+      {/* Floating Back Navigation Bar */}
+      <View style={styles.topNav}>
+        <TouchableOpacity style={styles.navBackBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.navBackText}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.navTitle} numberOfLines={1}>{concert.title}</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* ── Poster Banner Hero ── */}
+        <View style={styles.heroContainer}>
+          <Image source={{ uri: posterUri }} style={styles.heroImage} resizeMode="cover" />
+          <View style={styles.heroOverlay} />
+          
+          <View style={styles.heroBadgeRow}>
+            <Text style={[styles.artistTag, { color: bandColor.accent }]}>
+              {concert.artist_name || 'LIVE CONCERT'}
+            </Text>
+          </View>
+          
+          <Text style={styles.heroTitle}>{concert.title}</Text>
         </View>
 
-        {/* Poster Image (if available) */}
-        {concert.poster_url && (
-          <View style={styles.posterContainer}>
-            <Image 
-              source={{ uri: concert.poster_url }}
-              style={styles.posterImage}
-              resizeMode="cover"
-            />
-          </View>
-        )}
-
-        {/* Content */}
-        <View style={styles.content}>
-          {/* Title & Artist */}
-          <View style={styles.titleSection}>
-            <Text style={styles.title}>{concert.title}</Text>
-            <Text style={styles.artist}>{concert.artist}</Text>
-          </View>
-
-          {/* Info Cards */}
-          <View style={styles.infoCards}>
-            {/* Date & Time */}
-            <View style={styles.infoCard}>
+        <View style={styles.bodyContent}>
+          {/* ── Info Cards ── */}
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
               <Text style={styles.infoIcon}>📅</Text>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Date & Time</Text>
-                <Text style={styles.infoValue}>{formattedDate}</Text>
-                <Text style={styles.infoSubValue}>{formattedTime}</Text>
+              <View style={styles.infoCol}>
+                <Text style={styles.infoLabel}>DATE & TIME</Text>
+                <Text style={styles.infoVal}>{formatDateFull(concert.date)}</Text>
+                <Text style={styles.infoSubVal}>Doors Open: 18:00 WIB</Text>
               </View>
             </View>
 
-            {/* Venue */}
-            <View style={styles.infoCard}>
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
               <Text style={styles.infoIcon}>📍</Text>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Venue</Text>
-                <Text style={styles.infoValue}>
-                  {concert.venue?.name || 'Venue TBA'}
-                </Text>
-                <Text style={styles.infoSubValue}>
-                  {concert.venue?.city || ''}
-                </Text>
+              <View style={styles.infoCol}>
+                <Text style={styles.infoLabel}>VENUE & LOCATION</Text>
+                <Text style={styles.infoVal}>{concert.venue?.name || 'Main Stage Venue'}</Text>
+                <Text style={styles.infoSubVal}>{concert.venue?.city || 'Indonesia'}</Text>
               </View>
             </View>
-
-            {/* Seats Available */}
-            {concert.available_seats && (
-              <View style={styles.infoCard}>
-                <Text style={styles.infoIcon}>🎟️</Text>
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Seats Available</Text>
-                  <Text style={[
-                    styles.infoValue,
-                    concert.available_seats < 50 && { color: COLORS.error }
-                  ]}>
-                    {concert.available_seats} seats left
-                  </Text>
-                  {concert.available_seats < 50 && (
-                    <Text style={styles.limitedText}>🔥 Limited availability!</Text>
-                  )}
-                </View>
-              </View>
-            )}
           </View>
 
-          {/* Description */}
-          {concert.description && (
-            <View style={styles.descSection}>
-              <Text style={styles.sectionTitle}>About This Concert</Text>
-              <Text style={styles.description}>{concert.description}</Text>
-            </View>
-          )}
+          {/* ── Description ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionHeader}>ABOUT THE EVENT</Text>
+            <Text style={styles.descText}>
+              {concert.description || `${concert.title} live experience by ${concert.artist_name || 'artist'}. Grab your digital ticket pass now on StageCase.`}
+            </Text>
+          </View>
 
-          {/* Ticket Categories */}
-          {concert.ticket_categories && concert.ticket_categories.length > 0 && (
-            <View style={styles.ticketSection}>
-              <Text style={styles.sectionTitle}>Ticket Categories</Text>
-              {concert.ticket_categories.map((category, index) => (
-                <View key={index} style={styles.ticketCard}>
-                  <View style={styles.ticketInfo}>
-                    <Text style={styles.ticketName}>{category.name}</Text>
-                    <Text style={styles.ticketPrice}>
-                      Rp {category.price?.toLocaleString('id-ID')}
-                    </Text>
+          {/* ── Ticket Category Selection ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionHeader}>SELECT TICKET CATEGORY</Text>
+            {categories.map((cat, idx) => {
+              const isSelected = selectedCategory?.name === cat.name;
+              return (
+                <TouchableOpacity
+                  key={cat.name || idx}
+                  style={[styles.tierCard, isSelected && { borderColor: bandColor.accent, backgroundColor: COLORS.surface }]}
+                  onPress={() => setSelectedCategory(cat)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.tierHeader}>
+                    <Text style={styles.tierName}>{cat.name}</Text>
+                    <Text style={styles.tierPrice}>{formatCurrency(cat.price)}</Text>
                   </View>
-                  {category.available_seats && (
-                    <Text style={styles.ticketSeats}>
-                      {category.available_seats} available
-                    </Text>
+                  {cat.description && (
+                    <Text style={styles.tierDesc}>{cat.description}</Text>
                   )}
-                </View>
-              ))}
-            </View>
-          )}
+                  {isSelected && (
+                    <View style={[styles.selectedCheck, { backgroundColor: bandColor.accent }]}>
+                      <Text style={styles.checkText}>✓ SELECTED</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
       </ScrollView>
 
-      {/* Bottom CTA */}
+      {/* ── Bottom Booking Bar ── */}
       <View style={styles.bottomBar}>
-        <View style={styles.priceInfo}>
-          <Text style={styles.bottomLabel}>Starting from</Text>
-          <Text style={styles.bottomPrice}>
-            Rp {minPrice.toLocaleString('id-ID')}
+        <View style={styles.bottomPriceCol}>
+          <Text style={styles.bottomPriceLabel}>TOTAL PRICE</Text>
+          <Text style={styles.bottomPriceVal}>
+            {formatCurrency(selectedCategory?.price || minPrice)}
           </Text>
         </View>
-        <TouchableOpacity 
-          style={styles.bookBtn}
-          onPress={() => {
-            // TODO: Navigate to booking screen
-            alert('Booking feature coming soon!');
-          }}
+
+        <TouchableOpacity
+          style={[styles.bookBtn, { backgroundColor: bandColor.primary }, submitting && { opacity: 0.6 }]}
+          onPress={handleCreateBooking}
+          disabled={submitting}
+          activeOpacity={0.88}
         >
-          <Text style={styles.bookBtnText}>Book Now</Text>
+          {submitting ? (
+            <ActivityIndicator color={COLORS.ivory} size="small" />
+          ) : (
+            <Text style={styles.bookBtnText}>BUY TICKET →</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -209,174 +258,177 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  centerContainer: {
-    flex: 1,
+  topNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    zIndex: 10,
+  },
+  navBackBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.card,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 40,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  errorText: {
+  navBackText: {
     color: COLORS.ivory,
-    fontSize: 16,
-    marginBottom: 20,
+    fontSize: 18,
+    fontWeight: '800',
   },
-  backButton: {
-    backgroundColor: COLORS.jade,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  backButtonText: {
-    color: COLORS.white,
-    fontWeight: 'bold',
+  navTitle: {
+    flex: 1,
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginHorizontal: 10,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 110,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: `${COLORS.ivory}10`,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backIcon: {
-    color: COLORS.ivory,
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  headerTitle: {
-    flex: 1,
-    color: COLORS.ivory,
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginHorizontal: 12,
-  },
-  posterContainer: {
+  heroContainer: {
+    height: 240,
     width: '100%',
-    aspectRatio: 16/9,
-    backgroundColor: COLORS.surface,
+    position: 'relative',
+    justifyContent: 'flex-end',
+    padding: 20,
+    backgroundColor: COLORS.card,
   },
-  posterImage: {
+  heroImage: {
+    ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
   },
-  content: {
-    padding: 20,
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(13, 17, 23, 0.65)',
   },
-  titleSection: {
-    marginBottom: 24,
+  heroBadgeRow: {
+    marginBottom: 6,
   },
-  title: {
+  artistTag: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
     color: COLORS.ivory,
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    lineHeight: 34,
+    fontSize: 24,
+    fontWeight: '900',
+    lineHeight: 28,
   },
-  artist: {
-    color: COLORS.jade,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  infoCards: {
-    gap: 12,
-    marginBottom: 24,
+  bodyContent: {
+    padding: 20,
+    gap: 20,
   },
   infoCard: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.card,
     borderRadius: 16,
-    padding: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
+    padding: 16,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'flex-start',
   },
   infoIcon: {
-    fontSize: 24,
-    marginRight: 16,
+    fontSize: 20,
   },
-  infoContent: {
+  infoCol: {
     flex: 1,
   },
   infoLabel: {
     color: COLORS.textMuted,
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  infoValue: {
-    color: COLORS.ivory,
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1,
     marginBottom: 2,
   },
-  infoSubValue: {
+  infoVal: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  infoSubVal: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: 14,
+  },
+  section: {
+    gap: 10,
+  },
+  sectionHeader: {
+    color: COLORS.gold,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+  },
+  descText: {
     color: COLORS.textSecondary,
     fontSize: 13,
+    lineHeight: 20,
   },
-  limitedText: {
-    color: COLORS.error,
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  descSection: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    color: COLORS.ivory,
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  description: {
-    color: COLORS.textSecondary,
-    fontSize: 14,
-    lineHeight: 22,
-  },
-  ticketSection: {
-    marginBottom: 24,
-  },
-  ticketCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+  tierCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
+    padding: 16,
+    position: 'relative',
+    marginBottom: 10,
   },
-  ticketInfo: {
+  tierHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
-  ticketName: {
-    color: COLORS.ivory,
-    fontSize: 16,
-    fontWeight: 'bold',
+  tierName: {
+    color: COLORS.textPrimary,
+    fontSize: 15,
+    fontWeight: '800',
   },
-  ticketPrice: {
+  tierPrice: {
     color: COLORS.gold,
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '800',
   },
-  ticketSeats: {
+  tierDesc: {
     color: COLORS.textMuted,
     fontSize: 12,
+  },
+  selectedCheck: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 10,
+  },
+  checkText: {
+    color: COLORS.ivory,
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   bottomBar: {
     position: 'absolute',
@@ -386,34 +438,56 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    paddingBottom: 24,
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
-  priceInfo: {
+  bottomPriceCol: {
     flex: 1,
   },
-  bottomLabel: {
+  bottomPriceLabel: {
     color: COLORS.textMuted,
-    fontSize: 11,
-    marginBottom: 4,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
-  bottomPrice: {
+  bottomPriceVal: {
     color: COLORS.gold,
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '900',
+    marginTop: 2,
   },
   bookBtn: {
-    backgroundColor: COLORS.jade,
-    paddingHorizontal: 32,
+    paddingHorizontal: 24,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 14,
   },
   bookBtnText: {
-    color: COLORS.white,
-    fontWeight: 'bold',
-    fontSize: 15,
+    color: COLORS.ivory,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorText: {
+    color: COLORS.textPrimary,
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  backButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  backButtonText: {
+    color: COLORS.ivory,
+    fontWeight: '800',
   },
 });

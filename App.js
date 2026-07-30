@@ -23,7 +23,7 @@ function AppNavigator() {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#121A33' },
+        contentStyle: { backgroundColor: '#0D1117' },
         animation: 'fade',
       }}
     >

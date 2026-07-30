@@ -1,19 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { COLORS } from '../utils/theme';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
     Alert.alert(
-      'Logout',
-      'Apakah kamu yakin ingin keluar?',
+      'Sign Out',
+      'Are you sure you want to log out of StageCase?',
       [
-        { text: 'Batal', style: 'cancel' },
-        { 
-          text: 'Logout', 
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
           style: 'destructive',
           onPress: () => logout()
         }
@@ -27,120 +27,235 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Account</Text>
+        <Text style={styles.title}>Fan Profile</Text>
+        <Text style={styles.subtitle}>StageCase Account & Preferences</Text>
       </View>
 
-      <View style={styles.card}>
-        <View style={styles.avatar}>
-          <Text style={{ color: COLORS.jade, fontSize: 24, fontWeight: 'bold' }}>
-            {initials}
-          </Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Profile Card */}
+        <View style={styles.userCard}>
+          <View style={styles.avatarWrapper}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+          <Text style={styles.userName}>{user?.name || 'StageCase Fan'}</Text>
+          <Text style={styles.userEmail}>{user?.email || 'fan@stagecase.id'}</Text>
+
+          <View style={styles.badgeRow}>
+            <View style={styles.memberBadge}>
+              <Text style={styles.memberBadgeText}>★ OFFICIAL PASS MEMBER</Text>
+            </View>
+          </View>
         </View>
-        <Text style={styles.name}>{user?.name || 'StageCase User'}</Text>
-        <Text style={styles.email}>{user?.email || 'user@stagecase.id'}</Text>
-      </View>
 
-      {/* Menu Items */}
-      <View style={styles.menuSection}>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuIcon}>📧</Text>
-          <View style={styles.menuTextContainer}>
-            <Text style={styles.menuLabel}>Email</Text>
-            <Text style={styles.menuValue}>{user?.email || 'N/A'}</Text>
+        {/* Details List */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>ACCOUNT DETAILS</Text>
+
+          <View style={styles.menuItem}>
+            <Text style={styles.menuIcon}>👤</Text>
+            <View style={styles.menuCol}>
+              <Text style={styles.menuLabel}>FULL NAME</Text>
+              <Text style={styles.menuVal}>{user?.name || 'Not specified'}</Text>
+            </View>
           </View>
-        </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuIcon}>📱</Text>
-          <View style={styles.menuTextContainer}>
-            <Text style={styles.menuLabel}>Phone</Text>
-            <Text style={styles.menuValue}>{user?.phone || 'Not set'}</Text>
+          <View style={styles.menuItem}>
+            <Text style={styles.menuIcon}>✉️</Text>
+            <View style={styles.menuCol}>
+              <Text style={styles.menuLabel}>EMAIL ADDRESS</Text>
+              <Text style={styles.menuVal}>{user?.email || 'Not specified'}</Text>
+            </View>
           </View>
-        </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuIcon}>🎟️</Text>
-          <View style={styles.menuTextContainer}>
-            <Text style={styles.menuLabel}>Total Bookings</Text>
-            <Text style={styles.menuValue}>0</Text>
+          <View style={styles.menuItem}>
+            <Text style={styles.menuIcon}>📱</Text>
+            <View style={styles.menuCol}>
+              <Text style={styles.menuLabel}>PHONE NUMBER</Text>
+              <Text style={styles.menuVal}>{user?.phone || 'Not linked'}</Text>
+            </View>
           </View>
-        </TouchableOpacity>
-      </View>
+        </View>
 
-      {/* Logout Button */}
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
+        {/* Quick Actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>MY ACTIVITY</Text>
+
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={() => navigation.navigate('MyTickets')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.actionIcon}>🎟️</Text>
+            <Text style={styles.actionText}>View My Digital E-Tickets</Text>
+            <Text style={styles.arrow}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Logout */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.88}>
+          <Text style={styles.logoutText}>SIGN OUT</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background, padding: 20 },
-  header: { marginBottom: 20 },
-  title: { color: COLORS.ivory, fontSize: 22, fontWeight: 'bold' },
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 24,
-    padding: 24,
-    alignItems: 'center',
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  title: {
+    color: COLORS.textPrimary,
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  subtitle: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  scrollContent: {
+    padding: 20,
+    gap: 20,
+    paddingBottom: 40,
+  },
+  userCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: COLORS.border,
-    marginBottom: 24,
+    padding: 24,
+    alignItems: 'center',
   },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.darkJade,
+  avatarWrapper: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: COLORS.primary,
+    borderWidth: 2,
+    borderColor: COLORS.gold,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
-  name: { color: COLORS.ivory, fontSize: 18, fontWeight: 'bold' },
-  email: { color: COLORS.textSecondary, fontSize: 13, marginTop: 2 },
-  menuSection: {
-    gap: 12,
-    marginBottom: 24,
+  avatarText: {
+    color: COLORS.ivory,
+    fontSize: 24,
+    fontWeight: '900',
+  },
+  userName: {
+    color: COLORS.textPrimary,
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  userEmail: {
+    color: COLORS.textMuted,
+    fontSize: 13,
+    marginBottom: 14,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+  },
+  memberBadge: {
+    backgroundColor: COLORS.goldSubtle,
+    borderWidth: 1,
+    borderColor: COLORS.gold,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 100,
+  },
+  memberBadgeText: {
+    color: COLORS.gold,
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  section: {
+    gap: 10,
+  },
+  sectionHeader: {
+    color: COLORS.gold,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.5,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
+    padding: 14,
+    gap: 14,
   },
   menuIcon: {
-    fontSize: 24,
-    marginRight: 16,
+    fontSize: 20,
   },
-  menuTextContainer: {
+  menuCol: {
     flex: 1,
   },
   menuLabel: {
-    color: COLORS.textSecondary,
-    fontSize: 12,
+    color: COLORS.textMuted,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.8,
     marginBottom: 2,
   },
-  menuValue: {
-    color: COLORS.ivory,
-    fontSize: 14,
-    fontWeight: '600',
+  menuVal: {
+    color: COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: '700',
   },
-  logoutButton: {
-    backgroundColor: COLORS.error,
-    borderRadius: 16,
-    padding: 16,
+  actionItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 'auto',
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 14,
+    gap: 12,
+  },
+  actionIcon: {
+    fontSize: 20,
+  },
+  actionText: {
+    flex: 1,
+    color: COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  arrow: {
+    color: COLORS.gold,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  logoutBtn: {
+    backgroundColor: 'rgba(248, 81, 73, 0.15)',
+    borderWidth: 1,
+    borderColor: COLORS.error,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 10,
   },
   logoutText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: COLORS.error,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
 });
-

@@ -1,11 +1,13 @@
 import axios from 'axios';
+import { Platform } from 'react-native';
 import { getToken, removeToken } from '../utils/storage';
 
-// Ganti dengan IP lokal kamu saat testing dengan Expo Go di HP fisik
-// Android emulator: 10.0.2.2
-// iOS simulator: localhost
-// HP fisik: IP komputer kamu (cek dengan ipconfig)
-export const API_BASE = 'http://10.2.13.7:5000/api';
+// Local IP komputer aktif (Wi-Fi 2): 10.90.232.86
+const DEV_IP = '10.90.232.86';
+
+export const API_BASE = Platform.OS === 'web'
+  ? 'http://localhost:5000/api'
+  : `http://${DEV_IP}:5000/api`;
 
 const api = axios.create({
   baseURL: API_BASE,

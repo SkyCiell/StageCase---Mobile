@@ -2,7 +2,7 @@ import api from './api';
 
 export const bookingService = {
   // Get user's bookings
-  getMyBookings: () => api.get('/bookings/my-bookings'),
+  getMyBookings: () => api.get('/bookings/my'),
 
   // Get booking by ID
   getBookingById: (id) => api.get(`/bookings/${id}`),

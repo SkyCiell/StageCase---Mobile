@@ -15,13 +15,19 @@ export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) return Alert.alert('Error', 'Isi email dan password.');
+    if (!email || !password) {
+      const msg = 'Silakan isi email dan password Anda.';
+      if (Platform.OS === 'web') window.alert(msg);
+      else Alert.alert('Error', msg);
+      return;
+    }
     setLoading(true);
     try {
       await login(email.trim().toLowerCase(), password);
     } catch (err) {
-      const msg = err.response?.data?.message || 'Login gagal. Cek email & password.';
-      Alert.alert('Login Gagal', msg);
+      const msg = err.response?.data?.message || err.message || 'Login gagal. Periksa kembali email & password.';
+      if (Platform.OS === 'web') window.alert(`Login Gagal: ${msg}`);
+      else Alert.alert('Login Gagal', msg);
     } finally {
       setLoading(false);
     }

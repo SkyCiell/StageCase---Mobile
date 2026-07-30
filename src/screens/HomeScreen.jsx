@@ -1,39 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  SafeAreaView, ActivityIndicator, RefreshControl, StatusBar,
+  SafeAreaView, ActivityIndicator, RefreshControl, StatusBar, Image,
 } from 'react-native';
 import { concertService } from '../services/concertService';
 import { useAuth } from '../context/AuthContext';
 import { COLORS } from '../utils/theme';
+import { ARTIST_COVERS } from '../utils/covers';
+import ConcertCard from '../components/ConcertCard';
 
-function formatDate(dateStr) {
-  if (!dateStr) return { month: '—', day: '—' };
-  const d = new Date(dateStr);
-  return {
-    month: d.toLocaleString('en', { month: 'short' }).toUpperCase(),
-    day: d.getDate(),
-    year: d.getFullYear(),
-  };
-}
-
-function formatCurrency(amount) {
-  if (!amount) return 'IDR —';
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency', currency: 'IDR', maximumFractionDigits: 0,
-  }).format(amount);
-}
+const ARTIST_PIS = [
+  { name: 'Crayon Case', cover: ARTIST_COVERS['Crayon Case'] },
+  { name: 'Reality Club', cover: ARTIST_COVERS['Reality Club'] },
+  { name: 'The Milo', cover: ARTIST_COVERS['The Milo'] },
+  { name: 'Wave to Earth', cover: ARTIST_COVERS['Wave to Earth'] },
+];
 
 export default function HomeScreen({ navigation }) {
   const { user } = useAuth();
   const [concerts, setConcerts] = useState([]);
+  const [featuredConcerts, setFeaturedConcerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchConcerts = async () => {
     try {
-      const res = await concertService.getConcerts({ limit: 8 });
-      setConcerts(res.data.data || []);
+      const res = await concertService.getConcerts({ limit: 12 });
+      const list = res.data?.data || res.data || [];
+      setConcerts(list);
+      setFeaturedConcerts(list.filter(c => c.is_featured));
     } catch (e) {
       console.log('fetch concerts error', e);
     } finally {
@@ -48,13 +43,29 @@ export default function HomeScreen({ navigation }) {
     ? user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
     : 'SC';
 
-  const firstName = user?.name?.split(' ')[0] || 'there';
+  const firstName = user?.name?.split(' ')[0] || 'Fan';
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+      
+      {/* ── Navbar ── */}
+      <View style={styles.navHeader}>
+        <View style={styles.brandContainer}>
+          <Text style={styles.brandTitle}>STAGECASE</Text>
+          <Text style={styles.brandSubtitle}>EVERY STAGE BEGINS HERE</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.avatarBtn}
+          onPress={() => navigation.navigate('Profile')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.avatarText}>{initials}</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -64,122 +75,94 @@ export default function HomeScreen({ navigation }) {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Header ── */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.brand}>StageCase</Text>
-            <Text style={styles.brandSub}>EVERY STAGE BEGINS HERE</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.avatarBtn}
-            onPress={() => navigation.navigate('Profile')}
-          >
-            <Text style={styles.avatarText}>{initials}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Hero block ── */}
-        <View style={styles.hero}>
+        {/* ── Hero Banner ── */}
+        <View style={styles.heroCard}>
           <View style={styles.heroBadge}>
-            <Text style={styles.heroBadgeText}>🎶  Live Music Experience</Text>
+            <Text style={styles.heroBadgeText}>✨ LIVE EXPERIENCE PLATFORM</Text>
           </View>
           <Text style={styles.heroTitle}>
-            Hey, {firstName}.{'\n'}
-            <Text style={styles.heroAccent}>Discover your{'\n'}next show.</Text>
+            Hello, <Text style={styles.heroName}>{firstName}</Text>.{'\n'}
+            Discover live concerts & digital passes.
           </Text>
+          <Text style={styles.heroSubtitle}>
+            Get official tickets, seat reservations, and exclusive band merchandise.
+          </Text>
+
+          {/* Quick Metrics */}
           <View style={styles.statsRow}>
-            {[
-              { val: '500+', label: 'Events' },
-              { val: '50K+', label: 'Happy Fans' },
-              { val: '100+', label: 'Venues' },
-            ].map(s => (
-              <View key={s.label} style={styles.stat}>
-                <Text style={styles.statVal}>{s.val}</Text>
-                <Text style={styles.statLabel}>{s.label}</Text>
-              </View>
-            ))}
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>100%</Text>
+              <Text style={styles.statLabel}>OFFICIAL</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>INSTANT</Text>
+              <Text style={styles.statLabel}>E-TICKETS</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>QR PASS</Text>
+              <Text style={styles.statLabel}>SECURE ENTRY</Text>
+            </View>
           </View>
         </View>
 
-        {/* ── Quick actions ── */}
-        <View style={styles.quickRow}>
-          {[
-            { icon: '🎤', label: 'Browse', screen: 'Concerts' },
-            { icon: '🎟', label: 'My Tickets', screen: 'MyTickets' },
-            { icon: '👤', label: 'Account', screen: 'Profile' },
-          ].map(item => (
+        {/* ── Featured Artists Horizontal Reel ── */}
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleRow}>
+            <View style={styles.goldLine} />
+            <Text style={styles.sectionTitle}>FEATURED ARTISTS</Text>
+          </View>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.artistsReel}
+        >
+          {ARTIST_PIS.map((artist) => (
             <TouchableOpacity
-              key={item.label}
-              style={styles.quickCard}
-              onPress={() => navigation.navigate(item.screen)}
-              activeOpacity={0.7}
+              key={artist.name}
+              style={styles.artistChip}
+              onPress={() => navigation.navigate('Concerts', { search: artist.name })}
+              activeOpacity={0.8}
             >
-              <Text style={styles.quickIcon}>{item.icon}</Text>
-              <Text style={styles.quickLabel}>{item.label}</Text>
+              <Image source={{ uri: artist.cover }} style={styles.artistAvatar} />
+              <Text style={styles.artistName} numberOfLines={1}>{artist.name}</Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
 
-        {/* ── Section header ── */}
+        {/* ── Concert Feed Section ── */}
         <View style={styles.sectionHeader}>
-          <View style={styles.sectionLeft}>
-            <View style={styles.accentLine} />
-            <Text style={styles.sectionLabel}>UPCOMING SHOWS</Text>
+          <View style={styles.sectionTitleRow}>
+            <View style={styles.jadeLine} />
+            <Text style={styles.sectionTitle}>UPCOMING SHOWS</Text>
           </View>
           <TouchableOpacity onPress={() => navigation.navigate('Concerts')}>
-            <Text style={styles.sectionLink}>View All →</Text>
+            <Text style={styles.viewAllText}>View All →</Text>
           </TouchableOpacity>
         </View>
 
-        {/* ── Concert list ── */}
         {loading ? (
-          <ActivityIndicator color={COLORS.primary} style={{ marginTop: 32 }} />
+          <ActivityIndicator color={COLORS.primary} size="large" style={styles.loader} />
         ) : concerts.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>🎵</Text>
-            <Text style={styles.emptyText}>No concerts found.</Text>
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>No upcoming concerts available.</Text>
           </View>
         ) : (
-          concerts.map((c, idx) => {
-            const date = formatDate(c.date);
-            return (
-              <TouchableOpacity
-                key={c.id}
-                style={styles.concertCard}
-                onPress={() => navigation.navigate('ConcertDetail', { slug: c.slug })}
-                activeOpacity={0.75}
-              >
-                {/* Left accent bar */}
-                <View style={styles.concertAccent} />
-
-                {/* Date badge */}
-                <View style={styles.dateBadge}>
-                  <Text style={styles.dateMonth}>{date.month}</Text>
-                  <Text style={styles.dateDay}>{date.day}</Text>
-                </View>
-
-                {/* Info */}
-                <View style={styles.concertInfo}>
-                  <Text style={styles.concertTitle} numberOfLines={1}>
-                    {c.title}
-                  </Text>
-                  <Text style={styles.concertVenue} numberOfLines={1}>
-                    {c.venue?.name || 'Venue TBA'}{c.venue?.city ? ` · ${c.venue.city}` : ''}
-                  </Text>
-                  {c.min_price && (
-                    <Text style={styles.concertPrice}>
-                      From {formatCurrency(c.min_price)}
-                    </Text>
-                  )}
-                </View>
-
-                <Text style={styles.arrow}>›</Text>
-              </TouchableOpacity>
-            );
-          })
+          <View style={styles.concertList}>
+            {concerts.map((concert) => (
+              <ConcertCard
+                key={concert.id || concert.slug}
+                concert={concert}
+                onPress={() => navigation.navigate('ConcertDetail', { slug: concert.slug, id: concert.id })}
+              />
+            ))}
+          </View>
         )}
 
-        <View style={styles.bottomPad} />
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -190,30 +173,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  scroll: {
-    paddingBottom: 40,
-  },
-
-  // Header
-  header: {
+  navHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 12,
     paddingBottom: 16,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  brand: {
+  brandContainer: {
+    gap: 2,
+  },
+  brandTitle: {
     color: COLORS.ivory,
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '900',
     letterSpacing: 3,
   },
-  brandSub: {
-    color: COLORS.bronze,
-    fontSize: 7,
-    letterSpacing: 2.5,
-    marginTop: 2,
+  brandSubtitle: {
+    color: COLORS.gold,
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 2,
   },
   avatarBtn: {
     width: 38,
@@ -221,202 +205,167 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     backgroundColor: COLORS.primary,
     borderWidth: 1,
-    borderColor: 'rgba(245,243,245,0.2)',
+    borderColor: COLORS.gold,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     color: COLORS.ivory,
-    fontWeight: 'bold',
+    fontWeight: '800',
     fontSize: 12,
   },
-
-  // Hero
-  hero: {
-    paddingHorizontal: 24,
-    paddingVertical: 28,
-    backgroundColor: COLORS.surfaceDark,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  heroCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 20,
     marginBottom: 24,
   },
   heroBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(42,98,156,0.2)',
+    backgroundColor: COLORS.goldSubtle,
     borderWidth: 1,
-    borderColor: 'rgba(42,98,156,0.4)',
+    borderColor: COLORS.gold,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 100,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   heroBadgeText: {
-    color: COLORS.primaryLight,
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    color: COLORS.gold,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   heroTitle: {
-    color: COLORS.ivory,
-    fontSize: 28,
-    fontWeight: 'bold',
-    lineHeight: 34,
-    marginBottom: 24,
+    color: COLORS.textPrimary,
+    fontSize: 22,
+    fontWeight: '800',
+    lineHeight: 28,
+    marginBottom: 8,
   },
-  heroAccent: {
-    color: COLORS.primaryLight,
+  heroName: {
+    color: COLORS.accent,
+  },
+  heroSubtitle: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 20,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 24,
-  },
-  stat: {
     alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.surface,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  statVal: {
-    color: COLORS.primary,
-    fontSize: 20,
-    fontWeight: 'bold',
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statNumber: {
+    color: COLORS.gold,
+    fontSize: 13,
+    fontWeight: '900',
   },
   statLabel: {
     color: COLORS.textMuted,
-    fontSize: 10,
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 0.8,
     marginTop: 2,
-    letterSpacing: 0.5,
   },
-
-  // Quick actions
-  quickRow: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 24,
-    marginBottom: 28,
+  statDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: COLORS.border,
   },
-  quickCard: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    gap: 6,
-  },
-  quickIcon: {
-    fontSize: 20,
-  },
-  quickLabel: {
-    color: COLORS.textSecondary,
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-
-  // Section
   sectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    marginBottom: 14,
   },
-  sectionLeft: {
+  sectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  accentLine: {
-    width: 3,
+  goldLine: {
+    width: 4,
     height: 14,
-    backgroundColor: COLORS.bronze,
+    backgroundColor: COLORS.gold,
+    borderRadius: 2,
   },
-  sectionLabel: {
+  jadeLine: {
+    width: 4,
+    height: 14,
+    backgroundColor: COLORS.primary,
+    borderRadius: 2,
+  },
+  sectionTitle: {
     color: COLORS.ivory,
-    fontSize: 11,
-    fontWeight: 'bold',
-    letterSpacing: 2,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1.5,
   },
-  sectionLink: {
-    color: COLORS.bronze,
-    fontSize: 11,
-    fontWeight: '600',
+  viewAllText: {
+    color: COLORS.gold,
+    fontSize: 12,
+    fontWeight: '700',
   },
-
-  // Concert card
-  concertCard: {
+  artistsReel: {
+    gap: 12,
+    paddingBottom: 24,
+  },
+  artistChip: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 10,
+  },
+  artistAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingVertical: 16,
-    paddingRight: 20,
-    gap: 16,
-    position: 'relative',
-    marginHorizontal: 0,
   },
-  concertAccent: {
-    width: 2,
-    height: '100%',
-    backgroundColor: COLORS.border,
-    position: 'absolute',
-    left: 24,
-    top: 0,
+  artistName: {
+    color: COLORS.textPrimary,
+    fontSize: 12,
+    fontWeight: '700',
   },
-  dateBadge: {
-    width: 44,
+  concertList: {
+    gap: 4,
+  },
+  loader: {
+    marginVertical: 40,
+  },
+  emptyCard: {
+    padding: 30,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
     alignItems: 'center',
-    marginLeft: 40,
-  },
-  dateMonth: {
-    color: COLORS.bronze,
-    fontSize: 9,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  dateDay: {
-    color: COLORS.ivory,
-    fontSize: 22,
-    fontWeight: 'bold',
-    lineHeight: 26,
-  },
-  concertInfo: {
-    flex: 1,
-  },
-  concertTitle: {
-    color: COLORS.ivory,
-    fontWeight: 'bold',
-    fontSize: 14,
-    marginBottom: 3,
-  },
-  concertVenue: {
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    marginBottom: 2,
-  },
-  concertPrice: {
-    color: COLORS.amber,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  arrow: {
-    color: COLORS.textMuted,
-    fontSize: 22,
-  },
-
-  // Empty
-  empty: {
-    alignItems: 'center',
-    paddingVertical: 48,
-  },
-  emptyIcon: {
-    fontSize: 32,
-    marginBottom: 10,
-    opacity: 0.3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   emptyText: {
     color: COLORS.textMuted,
     fontSize: 13,
   },
-  bottomPad: { height: 20 },
 });
