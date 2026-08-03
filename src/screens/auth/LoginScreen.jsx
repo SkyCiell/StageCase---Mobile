@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { COLORS } from '../../utils/theme';
 
 export default function LoginScreen({ navigation }) {
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,6 +28,30 @@ export default function LoginScreen({ navigation }) {
       const msg = err.response?.data?.message || err.message || 'Login gagal. Periksa kembali email & password.';
       if (Platform.OS === 'web') window.alert(`Login Gagal: ${msg}`);
       else Alert.alert('Login Gagal', msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    const demoEmail = 'demo@stagecase.id';
+    const demoPassword = 'password123';
+    const demoName = 'StageCase Fan';
+
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+    setLoading(true);
+    try {
+      await login(demoEmail, demoPassword);
+    } catch (err) {
+      // If login fails (user does not exist in DB), auto-create demo user
+      try {
+        await register(demoName, demoEmail, demoPassword);
+      } catch (regErr) {
+        const msg = regErr.response?.data?.message || err.response?.data?.message || 'Login demo gagal.';
+        if (Platform.OS === 'web') window.alert(msg);
+        else Alert.alert('Demo Sign In', msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -113,6 +137,16 @@ export default function LoginScreen({ navigation }) {
                 ? <ActivityIndicator color={COLORS.ivory} size="small" />
                 : <Text style={styles.btnText}>SIGN IN</Text>
               }
+            </TouchableOpacity>
+
+            {/* Quick Demo Login */}
+            <TouchableOpacity
+              style={[styles.demoBtn, loading && styles.btnDisabled]}
+              onPress={handleDemoLogin}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.demoBtnText}>⚡ 1-TAP DEMO SIGN IN</Text>
             </TouchableOpacity>
           </View>
 
@@ -259,6 +293,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 11,
     letterSpacing: 3,
+  },
+  demoBtn: {
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.gold,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+    borderRadius: 8,
+  },
+  demoBtnText: {
+    color: COLORS.gold,
+    fontWeight: '800',
+    fontSize: 11,
+    letterSpacing: 1.5,
   },
 
   // Footer

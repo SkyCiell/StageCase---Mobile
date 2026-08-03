@@ -20,6 +20,13 @@ export default function ConcertListScreen({ navigation, route }) {
     fetchConcerts();
   }, []);
 
+  useEffect(() => {
+    if (route.params?.search !== undefined) {
+      setSearchQuery(route.params.search);
+      setSelectedCategory(route.params.search || 'All');
+    }
+  }, [route.params?.search]);
+
   const fetchConcerts = async () => {
     try {
       const response = await concertService.getConcerts();

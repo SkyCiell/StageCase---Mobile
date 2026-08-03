@@ -36,7 +36,11 @@ export default function DigitalTicketPass({ ticket, onPressQR }) {
   const isConfirmed = status === 'CONFIRMED' || status === 'PAID';
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => onPressQR && onPressQR(qrCodeValue)}
+      activeOpacity={0.92}
+    >
       {/* ── Top Header Banner ── */}
       <View style={[styles.headerBanner, { backgroundColor: bandColor.primary }]}>
         <View style={styles.headerRow}>
@@ -99,21 +103,17 @@ export default function DigitalTicketPass({ ticket, onPressQR }) {
         </View>
 
         {/* ── QR Section ── */}
-        <TouchableOpacity
-          style={styles.qrSection}
-          onPress={() => onPressQR && onPressQR(qrCodeValue)}
-          activeOpacity={0.8}
-        >
+        <View style={styles.qrSection}>
           <View style={styles.qrBg}>
             <QRCode value={qrCodeValue} size={64} backgroundColor="#FFFFFF" color="#000000" />
           </View>
           <View style={styles.qrInfo}>
             <Text style={styles.qrCodeText}>{qrCodeValue}</Text>
-
+            <Text style={styles.tapToEnlarge}>🔍 Tap anywhere on pass to view full QR</Text>
           </View>
-        </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -286,5 +286,10 @@ const styles = StyleSheet.create({
     fontFamily: COLORS.mono,
     letterSpacing: 1,
     marginBottom: 3,
+  },
+  tapToEnlarge: {
+    color: COLORS.gold,
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

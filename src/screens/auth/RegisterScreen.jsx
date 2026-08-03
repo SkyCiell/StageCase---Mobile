@@ -15,18 +15,33 @@ export default function RegisterScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const showAlert = (title, message) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}: ${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
   const handleRegister = async () => {
-    if (!name || !email || !password) return Alert.alert('Error', 'Semua field wajib diisi.');
-    if (password.length < 8) return Alert.alert('Error', 'Password minimal 8 karakter.');
+    if (!name || !email || !password) return showAlert('Error', 'Semua field wajib diisi.');
+    if (password.length < 8) return showAlert('Error', 'Password minimal 8 karakter.');
     setLoading(true);
     try {
       await register(name.trim(), email.trim().toLowerCase(), password);
     } catch (err) {
       const msg = err.response?.data?.message || 'Registrasi gagal. Coba lagi.';
-      Alert.alert('Gagal', msg);
+      showAlert('Gagal', msg);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleQuickFill = () => {
+    const randomSuffix = Math.floor(Math.random() * 1000);
+    setName(`Fan StageCase ${randomSuffix}`);
+    setEmail(`fan${randomSuffix}@stagecase.id`);
+    setPassword('password123');
   };
 
   return (
@@ -122,6 +137,15 @@ export default function RegisterScreen({ navigation }) {
                 ? <ActivityIndicator color={COLORS.ivory} size="small" />
                 : <Text style={styles.btnText}>CREATE ACCOUNT</Text>
               }
+            </TouchableOpacity>
+
+            {/* Quick Auto-Fill */}
+            <TouchableOpacity
+              style={styles.quickFillBtn}
+              onPress={handleQuickFill}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.quickFillText}>✨ AUTO-FILL DEMO DATA</Text>
             </TouchableOpacity>
           </View>
 
@@ -262,6 +286,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 11,
     letterSpacing: 3,
+  },
+  quickFillBtn: {
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.gold,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+    borderRadius: 8,
+  },
+  quickFillText: {
+    color: COLORS.gold,
+    fontWeight: '800',
+    fontSize: 11,
+    letterSpacing: 1.5,
   },
 
   divider: {

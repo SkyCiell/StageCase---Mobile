@@ -52,8 +52,11 @@ export default function ConcertDetailScreen({ route, navigation }) {
       }
       const data = res?.data?.data || res?.data;
       setConcert(data);
-      if (data?.ticketCategories?.length || data?.ticket_categories?.length) {
-        const categories = data.ticketCategories || data.ticket_categories;
+      const categories = data?.ticketCategories || data?.ticket_categories || [
+        { id: 1, name: 'VIP FRONT', price: 750000, description: 'Front stage area + Merch' },
+        { id: 2, name: 'REGULAR TIER 1', price: 350000, description: 'General admission standing' },
+      ];
+      if (categories.length > 0) {
         setSelectedCategory(categories[0]);
       }
     } catch (error) {

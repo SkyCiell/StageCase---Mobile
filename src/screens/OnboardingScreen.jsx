@@ -23,6 +23,13 @@ export default function OnboardingScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header Skip Button */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.skipBtn} onPress={() => navigation.navigate('Login')}>
+          <Text style={styles.skipText}>Skip →</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.content}>
         <View style={styles.iconCircle}>
           <Text style={{ fontSize: 48 }}>🎵</Text>
@@ -34,7 +41,13 @@ export default function OnboardingScreen({ navigation }) {
       <View style={styles.footer}>
         <View style={styles.dots}>
           {SLIDES.map((_, i) => (
-            <View key={i} style={[styles.dot, i === index && styles.activeDot]} />
+            <TouchableOpacity
+              key={i}
+              onPress={() => setIndex(i)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <View style={[styles.dot, i === index && styles.activeDot]} />
+            </TouchableOpacity>
           ))}
         </View>
 
@@ -52,6 +65,24 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     justifyContent: 'space-between',
     padding: 24,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingTop: 8,
+  },
+  skipBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  skipText: {
+    color: COLORS.gold,
+    fontSize: 12,
+    fontWeight: '700',
   },
   content: {
     flex: 1,

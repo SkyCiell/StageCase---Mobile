@@ -1,24 +1,31 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert, ScrollView, Platform } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { COLORS } from '../utils/theme';
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout } = useAuth();
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to log out of StageCase?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: () => logout()
-        }
-      ]
-    );
+  const handleLogout = async () => {
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Are you sure you want to log out of StageCase?');
+      if (confirmed) {
+        await logout();
+      }
+    } else {
+      Alert.alert(
+        'Sign Out',
+        'Are you sure you want to log out of StageCase?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Sign Out',
+            style: 'destructive',
+            onPress: async () => await logout()
+          }
+        ]
+      );
+    }
   };
 
   const initials = user?.name
@@ -53,34 +60,46 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.section}>
           <Text style={styles.sectionHeader}>ACCOUNT DETAILS</Text>
 
-          <View style={styles.menuItem}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => Alert.alert('Profile Info', `Full Name: ${user?.name || 'Not specified'}`)}
+            activeOpacity={0.8}
+          >
             <Text style={styles.menuIcon}>👤</Text>
             <View style={styles.menuCol}>
               <Text style={styles.menuLabel}>FULL NAME</Text>
               <Text style={styles.menuVal}>{user?.name || 'Not specified'}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
-          <View style={styles.menuItem}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => Alert.alert('Profile Info', `Email: ${user?.email || 'Not specified'}`)}
+            activeOpacity={0.8}
+          >
             <Text style={styles.menuIcon}>✉️</Text>
             <View style={styles.menuCol}>
               <Text style={styles.menuLabel}>EMAIL ADDRESS</Text>
               <Text style={styles.menuVal}>{user?.email || 'Not specified'}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
-          <View style={styles.menuItem}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => Alert.alert('Profile Info', `Phone: ${user?.phone || 'Not linked'}`)}
+            activeOpacity={0.8}
+          >
             <Text style={styles.menuIcon}>📱</Text>
             <View style={styles.menuCol}>
               <Text style={styles.menuLabel}>PHONE NUMBER</Text>
               <Text style={styles.menuVal}>{user?.phone || 'Not linked'}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionHeader}>MY ACTIVITY</Text>
+          <Text style={styles.sectionHeader}>MY ACTIVITY & EXPLORE</Text>
 
           <TouchableOpacity
             style={styles.actionItem}
@@ -89,6 +108,16 @@ export default function ProfileScreen({ navigation }) {
           >
             <Text style={styles.actionIcon}>🎟️</Text>
             <Text style={styles.actionText}>View My Digital E-Tickets</Text>
+            <Text style={styles.arrow}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={() => navigation.navigate('Concerts')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.actionIcon}>🎤</Text>
+            <Text style={styles.actionText}>Explore Upcoming Concerts</Text>
             <Text style={styles.arrow}>›</Text>
           </TouchableOpacity>
         </View>

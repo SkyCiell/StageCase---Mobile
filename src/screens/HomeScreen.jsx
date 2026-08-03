@@ -90,20 +90,32 @@ export default function HomeScreen({ navigation }) {
 
           {/* Quick Metrics */}
           <View style={styles.statsRow}>
-            <View style={styles.statItem}>
+            <TouchableOpacity
+              style={styles.statItem}
+              onPress={() => navigation.navigate('Concerts')}
+              activeOpacity={0.7}
+            >
               <Text style={styles.statNumber}>100%</Text>
-              <Text style={styles.statLabel}>OFFICIAL</Text>
-            </View>
+              <Text style={styles.statLabel}>OFFICIAL SHOWS</Text>
+            </TouchableOpacity>
             <View style={styles.statDivider} />
-            <View style={styles.statItem}>
+            <TouchableOpacity
+              style={styles.statItem}
+              onPress={() => navigation.navigate('Concerts')}
+              activeOpacity={0.7}
+            >
               <Text style={styles.statNumber}>INSTANT</Text>
-              <Text style={styles.statLabel}>E-TICKETS</Text>
-            </View>
+              <Text style={styles.statLabel}>E-TICKETS →</Text>
+            </TouchableOpacity>
             <View style={styles.statDivider} />
-            <View style={styles.statItem}>
+            <TouchableOpacity
+              style={styles.statItem}
+              onPress={() => navigation.navigate('MyTickets')}
+              activeOpacity={0.7}
+            >
               <Text style={styles.statNumber}>QR PASS</Text>
-              <Text style={styles.statLabel}>SECURE ENTRY</Text>
-            </View>
+              <Text style={styles.statLabel}>MY TICKETS →</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
